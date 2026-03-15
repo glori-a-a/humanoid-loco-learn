@@ -8,9 +8,9 @@
 [![Isaac Lab](https://img.shields.io/badge/Isaac%20Lab-compatible-green)](https://isaac-sim.github.io/IsaacLab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-> MSc dissertation project — University of Manchester
+
 > *"Data-Driven Learning Control of Humanoid Robots"*
-> Supervisor: Prof. Long
+
 
 ---
 
