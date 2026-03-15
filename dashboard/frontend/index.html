@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HumanoidLocoLearn — ILC Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --accent: #58a6ff; --green: #3fb950; --orange: #f78166;
+    --text: #e6edf3; --muted: #8b949e;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font);
+         min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border);
+           padding: 14px 28px; display: flex; align-items: center;
+           justify-content: space-between; }
+  header h1 { font-size: 1.1rem; font-weight: 600; color: var(--accent); }
+  header .tag { font-size: 0.75rem; background: #21262d; border: 1px solid var(--border);
+                padding: 3px 10px; border-radius: 20px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: 260px 1fr; gap: 16px;
+          padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border);
+           border-radius: 8px; padding: 16px; }
+  .panel h2 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+              letter-spacing: .08em; color: var(--muted); margin-bottom: 14px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+               margin-bottom: 16px; }
+  .stat { background: #21262d; border-radius: 6px; padding: 12px; }
+  .stat .val { font-size: 1.6rem; font-weight: 700; color: var(--accent);
+               line-height: 1; }
+  .stat .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem;
+           padding: 4px 10px; border-radius: 4px; font-weight: 500; }
+  .badge.running { background: #1f3b2a; color: var(--green); }
+  .badge.stopped { background: #2d1f1f; color: var(--orange); }
+  .badge.converged { background: #1a2f4a; color: var(--accent); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor;
+         animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  button { width: 100%; padding: 9px; border-radius: 6px; border: none;
+           font-size: 0.85rem; font-weight: 600; cursor: pointer;
+           transition: opacity .2s; margin-bottom: 8px; }
+  button:hover { opacity: 0.85; }
+  .btn-start { background: var(--green); color: #0d1117; }
+  .btn-stop  { background: var(--orange); color: #0d1117; }
+  .btn-reset { background: #21262d; color: var(--text); border: 1px solid var(--border); }
+
+  select, input[type=range] { width: 100%; background: #21262d; border: 1px solid var(--border);
+    color: var(--text); padding: 7px; border-radius: 5px; font-size: 0.82rem;
+    margin-bottom: 10px; }
+  label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 3px; }
+
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .chart-box { background: var(--surface); border: 1px solid var(--border);
+               border-radius: 8px; padding: 16px; }
+  .chart-box h3 { font-size: 0.78rem; color: var(--muted); margin-bottom: 12px;
+                  text-transform: uppercase; letter-spacing: .06em; }
+  canvas { max-height: 220px; }
+
+  .joint-bars { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+  .joint-row { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; }
+  .joint-name { width: 30px; color: var(--muted); }
+  .bar-track { flex: 1; background: #21262d; border-radius: 3px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: var(--accent);
+              transition: width .3s ease; }
+  .bar-fill.warn { background: var(--orange); }
+  .joint-val { width: 42px; text-align: right; color: var(--text); }
+
+  .log { font-family: 'Courier New', monospace; font-size: 0.73rem; color: var(--muted);
+         max-height: 160px; overflow-y: auto; background: #0d1117;
+         padding: 10px; border-radius: 5px; margin-top: 12px; }
+  .log .info { color: var(--accent); }
+  .log .ok   { color: var(--green); }
+  .log .warn { color: var(--orange); }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+    .charts { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🤖 HumanoidLocoLearn — ILC Dashboard</h1>
+  <div style="display:flex;gap:10px;align-items:center">
+    <span id="status-badge" class="badge stopped"><span class="dot"></span>Stopped</span>
+    <span class="tag">Data-Driven Learning Control</span>
+  </div>
+</header>
+
+<div class="grid">
+  <!-- Sidebar controls -->
+  <div>
+    <div class="panel" style="margin-bottom:14px">
+      <h2>Status</h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="val" id="s-trial">0</div><div class="lbl">Trial</div></div>
+        <div class="stat"><div class="val" id="s-rmse">—</div><div class="lbl">RMSE</div></div>
+        <div class="stat"><div class="val" id="s-improve">—</div><div class="lbl">Improvement</div></div>
+        <div class="stat"><div class="val" id="s-uffnorm">—</div><div class="lbl">‖u_ff‖</div></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px">
+      <h2>Controls</h2>
+      <label>Algorithm</label>
+      <select id="algo">
+        <option value="noilc">Norm-Optimal ILC</option>
+        <option value="pd">PD-type ILC</option>
+        <option value="p">P-type ILC</option>
+        <option value="adaptive">Adaptive ILC</option>
+      </select>
+      <label>Gait</label>
+      <select id="gait">
+        <option value="trot">Trot</option>
+        <option value="walk">Walk</option>
+        <option value="bound">Bound</option>
+        <option value="pace">Pace</option>
+      </select>
+      <label>Max Trials: <span id="max-lbl">100</span></label>
+      <input type="range" id="max-trials" min="10" max="300" value="100"
+             oninput="document.getElementById('max-lbl').textContent=this.value">
+      <button class="btn-start" onclick="startLearning()">▶ Start Learning</button>
+      <button class="btn-stop"  onclick="stopLearning()">⏹ Stop</button>
+      <button class="btn-reset" onclick="resetLearning()">↺ Reset</button>
+    </div>
+
+    <div class="panel">
+      <h2>Event Log</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div>
+    <div class="charts">
+      <div class="chart-box">
+        <h3>Convergence Curve — RMSE per Trial</h3>
+        <canvas id="c-conv"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>Feedforward Signal Norm ‖u_ff‖</h3>
+        <canvas id="c-uff"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>Per-Joint Tracking Error (current trial)</h3>
+        <div class="joint-bars" id="joint-bars"></div>
+      </div>
+      <div class="chart-box">
+        <h3>Learning Rate (ΔRMSE per trial)</h3>
+        <canvas id="c-delta"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Chart setup ────────────────────────────────────────────────────────────
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: '#8b949e', font: {size:10} }, grid: { color: '#21262d' } },
+    y: { ticks: { color: '#8b949e', font: {size:10} }, grid: { color: '#21262d' } }
+  }
+};
+
+function mkChart(id, color, fill=true) {
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 2,
+      backgroundColor: fill ? color+'22' : 'transparent',
+      fill, tension: 0.3, pointRadius: 2 }] },
+    options: {...chartDefaults}
+  });
+}
+
+const cConv  = mkChart('c-conv',  '#58a6ff');
+const cUff   = mkChart('c-uff',   '#3fb950');
+const cDelta = mkChart('c-delta', '#f78166', false);
+
+function pushChart(chart, label, value, maxPts=150) {
+  chart.data.labels.push(label);
+  chart.data.datasets[0].data.push(value);
+  if (chart.data.labels.length > maxPts) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
+  chart.update('none');
+}
+
+// ── Joint bars ────────────────────────────────────────────────────────────
+function initJointBars(n=12) {
+  const names = ['FL-ab','FL-fe','FL-kn','FR-ab','FR-fe','FR-kn',
+                 'RL-ab','RL-fe','RL-kn','RR-ab','RR-fe','RR-kn'];
+  const el = document.getElementById('joint-bars');
+  el.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    el.innerHTML += `<div class="joint-row">
+      <span class="joint-name">${names[i]||'J'+i}</span>
+      <div class="bar-track"><div class="bar-fill" id="jb-${i}" style="width:0%"></div></div>
+      <span class="joint-val" id="jv-${i}">—</span>
+    </div>`;
+  }
+}
+
+function updateJointBars(errors) {
+  const maxErr = Math.max(...errors, 0.001);
+  errors.forEach((e, i) => {
+    const pct = Math.min(100, (e / 0.3) * 100);
+    const bar = document.getElementById(`jb-${i}`);
+    const val = document.getElementById(`jv-${i}`);
+    if (bar) { bar.style.width = pct+'%'; bar.className = 'bar-fill'+(pct>60?' warn':''); }
+    if (val) val.textContent = e.toFixed(4);
+  });
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────
+function log(msg, cls='info') {
+  const el = document.getElementById('log');
+  const t = new Date().toTimeString().slice(0,8);
+  el.innerHTML += `<div class="${cls}">[${t}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+  if (el.children.length > 100) el.removeChild(el.firstChild);
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────
+let ws, prevRmse = null;
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+  ws.onopen = () => log('Connected to backend', 'ok');
+  ws.onclose = () => { log('Disconnected — retrying…', 'warn'); setTimeout(connect, 2000); };
+
+  ws.onmessage = (ev) => {
+    const d = JSON.parse(ev.data);
+
+    if (d.type === 'init') {
+      initJointBars(12);
+      if (d.rmse_history?.length) {
+        d.rmse_history.forEach((r, i) => pushChart(cConv, i, r));
+        log(`Loaded ${d.rmse_history.length} previous trials`, 'info');
+      }
+      updateStatusBadge(d.running);
+    }
+
+    if (d.type === 'trial_end') {
+      document.getElementById('s-trial').textContent = d.trial;
+      document.getElementById('s-rmse').textContent  = d.rmse.toExponential(2);
+      document.getElementById('s-uffnorm').textContent = d.u_ff_norm.toFixed(2);
+
+      const imp = prevRmse
+        ? ((prevRmse - d.rmse) / (prevRmse + 1e-8) * 100).toFixed(1) + '%'
+        : '—';
+      document.getElementById('s-improve').textContent = imp;
+
+      pushChart(cConv,  d.trial, d.rmse);
+      pushChart(cUff,   d.trial, d.u_ff_norm);
+      if (prevRmse !== null)
+        pushChart(cDelta, d.trial, Math.abs(prevRmse - d.rmse));
+      prevRmse = d.rmse;
+
+      if (d.joint_errors) updateJointBars(d.joint_errors);
+
+      const cls = d.converged ? 'ok' : (d.rmse < 0.05 ? 'info' : 'warn');
+      log(`Trial ${d.trial} | RMSE=${d.rmse.toExponential(3)} | ${d.algorithm}/${d.gait}`, cls);
+
+      if (d.converged) {
+        log(`✓ Converged at trial ${d.trial}!`, 'ok');
+        updateStatusBadge(false, true);
+      }
+    }
+
+    if (d.type === 'step') updateJointBars(d.joint_errors.map(Math.abs));
+  };
+}
+
+function updateStatusBadge(running, converged=false) {
+  const b = document.getElementById('status-badge');
+  if (converged) { b.className='badge converged'; b.innerHTML='<span class="dot"></span>Converged'; }
+  else if (running) { b.className='badge running'; b.innerHTML='<span class="dot"></span>Learning…'; }
+  else { b.className='badge stopped'; b.innerHTML='<span class="dot"></span>Stopped'; }
+}
+
+// ── API calls ─────────────────────────────────────────────────────────────
+async function startLearning() {
+  const body = {
+    algorithm: document.getElementById('algo').value,
+    gait: document.getElementById('gait').value,
+    max_trials: parseInt(document.getElementById('max-trials').value),
+  };
+  await fetch('/api/start', { method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  updateStatusBadge(true);
+  prevRmse = null;
+  log(`Started: ${body.algorithm} / ${body.gait}`, 'ok');
+}
+
+async function stopLearning() {
+  await fetch('/api/stop', { method:'POST' });
+  updateStatusBadge(false);
+  log('Stopped by user', 'warn');
+}
+
+async function resetLearning() {
+  await fetch('/api/reset', { method:'POST' });
+  cConv.data.labels=[]; cConv.data.datasets[0].data=[];
+  cUff.data.labels=[]; cUff.data.datasets[0].data=[];
+  cDelta.data.labels=[]; cDelta.data.datasets[0].data=[];
+  cConv.update(); cUff.update(); cDelta.update();
+  document.getElementById('s-trial').textContent='0';
+  document.getElementById('s-rmse').textContent='—';
+  prevRmse = null;
+  updateStatusBadge(false);
+  log('Reset', 'warn');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+initJointBars(12);
+connect();
+</script>
+</body>
+</html>

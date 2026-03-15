@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+logs/
+/tmp/ilc_logs/
+*.png
+*.log
+.DS_Store
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/

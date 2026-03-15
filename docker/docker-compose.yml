@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - /tmp/ilc_logs:/tmp/ilc_logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

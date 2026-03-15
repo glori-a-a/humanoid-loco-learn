@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>humanoid_control</name>
+  <version>1.0.0</version>
+  <description>Data-driven ILC controller for humanoid/quadruped robots via ROS2</description>
+  <maintainer email="xinyue.zhang-32@postgrad.manchester.ac.uk">Xinyue Zhang</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>numpy</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

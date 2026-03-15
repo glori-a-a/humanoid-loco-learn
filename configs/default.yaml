@@ -1,0 +1,44 @@
+algorithm: noilc        # p | pd | noilc | adaptive
+gait: trot              # trot | walk | bound | pace
+backend: sim            # sim | isaac
+
+robot:
+  n_joints: 12
+  n_feet: 4
+  name: unitree_go2
+
+control:
+  horizon: 300
+  dt: 0.02
+  kp_feedback: 40.0
+  kd_feedback: 2.0
+  max_trials: 200
+  convergence_tol: 1.0e-3
+
+ilc:
+  noilc:
+    lam: 0.1
+    q_weight: 1.0
+    r_weight: 1.0
+  pd:
+    kp: 0.8
+    kd: 0.1
+  p:
+    gamma: 0.7
+  adaptive:
+    alpha: 0.5
+    beta1: 0.9
+    beta2: 0.999
+
+trajectory:
+  stride_freq: 2.0
+  amplitude: 0.4
+  smoothing: true
+
+dashboard:
+  host: 0.0.0.0
+  port: 8000
+
+logging:
+  log_dir: /tmp/ilc_logs
+  save_every: 10
