@@ -165,9 +165,10 @@ def make_env(backend: str = "sim", config: Optional[EnvConfig] = None,
     """
     Factory for environment selection.
 
-    backend : 'isaac' | 'sim'
-        'isaac' — requires Isaac Lab installation (Ubuntu 22.04 + GPU)
-        'sim'   — lightweight built-in simulation (any machine)
+    backend : 'isaac' | 'sim' | 'tienkung'
+        'isaac'    — Unitree Go2 quadruped via Isaac Lab (Ubuntu 22.04 + GPU)
+        'sim'      — lightweight built-in simulation (any machine)
+        'tienkung' — TienKung humanoid via TienKung-Lab + Isaac Lab
     """
     if config is None:
         config = EnvConfig()
@@ -177,5 +178,8 @@ def make_env(backend: str = "sim", config: Optional[EnvConfig] = None,
     elif backend == "sim":
         from .sim_env import LightweightSimEnv
         return LightweightSimEnv(config, **kwargs)
+    elif backend == "tienkung":
+        from .tienkung_env import make_tienkung_env
+        return make_tienkung_env(**kwargs)
     else:
-        raise ValueError(f"Unknown backend '{backend}'. Use 'isaac' or 'sim'.")
+        raise ValueError(f"Unknown backend '{backend}'. Use 'isaac', 'sim', or 'tienkung'.")

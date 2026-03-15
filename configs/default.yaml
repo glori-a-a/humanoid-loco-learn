@@ -5,7 +5,15 @@ backend: sim            # sim | isaac
 robot:
   n_joints: 12
   n_feet: 4
-  name: unitree_go2
+  name: unitree_go2   # or: tienkung (23 DOF humanoid)
+
+tienkung:
+  n_joints: 23
+  n_loco_joints: 12   # legs only for ILC
+  n_feet: 2
+  dt: 0.02
+  use_base_policy: false   # true = Mode B (ILC residual on AMP policy)
+  policy_checkpoint: ""    # path to TienKung-Lab .pt checkpoint
 
 control:
   horizon: 300
